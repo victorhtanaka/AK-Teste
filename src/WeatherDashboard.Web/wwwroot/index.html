@@ -1,0 +1,41 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Dashboard Climático das 27 Capitais Brasileiras em tempo real e histórico." />
+    <title>Clima Brasil — Dashboard das Capitais</title>
+    <base href="/" />
+    
+    <!-- Tipografia Moderna (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS Nativo Personalizado (100% livre de bibliotecas/templates) -->
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link href="WeatherDashboard.Web.styles.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="app">
+        <div class="app-loading-screen" role="status" aria-live="polite">
+            <div class="loading-spinner" aria-hidden="true"></div>
+            <h1 class="loading-title">Dashboard Climático das Capitais</h1>
+            <p class="loading-subtitle">Carregando dados em tempo real...</p>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui" role="alert">
+        <span>Ocorreu um erro não tratado na aplicação.</span>
+        <a href="" class="reload">Recarregar</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <!-- Blazor WebAssembly Core Runtime -->
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+
+</html>

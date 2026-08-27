@@ -1,0 +1,81 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="960" height="480">
+  <defs>
+    <style>
+      .bg { fill: #0b1329; }
+      .box-user { fill: #1e1b4b; stroke: #6366f1; stroke-width: 2; rx: 12; }
+      .box-docker { fill: #0f172a; stroke: #0284c7; stroke-width: 2; rx: 16; }
+      .box-app { fill: #064e3b; stroke: #10b981; stroke-width: 1.8; rx: 10; }
+      .box-db { fill: #311042; stroke: #a855f7; stroke-width: 1.8; rx: 10; }
+      .box-ext { fill: #451a03; stroke: #f97316; stroke-width: 1.8; rx: 12; }
+      .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #f8fafc; font-size: 18px; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 400; fill: #94a3b8; font-size: 12px; }
+      .layer-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #38bdf8; font-size: 14px; letter-spacing: 0.5px; }
+      .comp-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #ffffff; font-size: 13px; }
+      .comp-desc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 400; fill: #cbd5e1; font-size: 11px; }
+      .arrow { stroke: #38bdf8; stroke-width: 2; fill: none; marker-end: url(#arrow-cyan); }
+      .arrow-orange { stroke: #fb923c; stroke-width: 2; fill: none; marker-end: url(#arrow-orange); }
+      .arrow-purple { stroke: #c084fc; stroke-width: 2; fill: none; marker-end: url(#arrow-purple); }
+    </style>
+    <marker id="arrow-cyan" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#38bdf8" />
+    </marker>
+    <marker id="arrow-orange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#fb923c" />
+    </marker>
+    <marker id="arrow-purple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#c084fc" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="480" class="bg" />
+
+  <!-- Header -->
+  <text x="40" y="38" class="title">Diagrama de Arquitetura Física &amp; Infraestrutura de Deploy</text>
+  <text x="40" y="58" class="subtitle">Deploy Containerizado Multistage (Docker &amp; Docker Compose / Kubernetes / Cloud VM)</text>
+
+  <!-- 1. User Client -->
+  <rect x="40" y="130" width="180" height="230" class="box-user" />
+  <text x="56" y="160" class="comp-title">Cliente / Navegador</text>
+  <text x="56" y="180" class="comp-desc">• Desktop (Chrome/Edge)</text>
+  <text x="56" y="198" class="comp-desc">• Mobile &amp; Tablet</text>
+  <text x="56" y="216" class="comp-desc">• Blazor WASM Runtime</text>
+  <text x="56" y="234" class="comp-desc">• Cache Local &amp; Static Web</text>
+  <text x="56" y="270" class="comp-desc">Acesso: HTTP / HTTPS</text>
+  <text x="56" y="288" class="comp-desc">Porta: 5000 / 5158 / 443</text>
+
+  <!-- 2. Docker Host Boundary -->
+  <rect x="270" y="90" width="410" height="330" class="box-docker" />
+  <text x="290" y="120" class="layer-title">DOCKER HOST / AMBIENTE DE EXECUÇÃO (.NET 8 RUNTIME)</text>
+
+  <!-- App Container -->
+  <rect x="290" y="140" width="370" height="125" class="box-app" />
+  <text x="306" y="165" class="comp-title">Container: weather-dashboard-app (Porta 5000 / 8080)</text>
+  <text x="306" y="185" class="comp-desc">• Kestrel Web Server &amp; Host de Arquivos Estáticos WASM</text>
+  <text x="306" y="202" class="comp-desc">• ASP.NET Core Web API Core (/api/v1/*)</text>
+  <text x="306" y="219" class="comp-desc">• Background Worker de Coleta Automática (15 min)</text>
+  <text x="306" y="236" class="comp-desc">• Health Checks (/health) &amp; Serilog File/Console Logs</text>
+
+  <!-- Database Container -->
+  <rect x="290" y="285" width="370" height="115" class="box-db" />
+  <text x="306" y="310" class="comp-title">Container: weather-sqlserver (Porta 1433)</text>
+  <text x="306" y="330" class="comp-desc">• Microsoft SQL Server 2022 Relacional</text>
+  <text x="306" y="347" class="comp-desc">• Volume Persistente Docker: weather_sqldata</text>
+  <text x="306" y="364" class="comp-desc">• Índices Compostos: (CityId, CollectedAtUtc)</text>
+  <text x="306" y="381" class="comp-desc">• Fallback automático: LocalDB / InMemory</text>
+
+  <!-- 3. External API -->
+  <rect x="730" y="130" width="190" height="230" class="box-ext" />
+  <text x="746" y="160" class="comp-title">Serviço Externo</text>
+  <text x="746" y="180" class="comp-desc">OpenWeatherMap API</text>
+  <text x="746" y="198" class="comp-desc">api.openweathermap.org</text>
+  <text x="746" y="225" class="comp-desc">• Endpoint 2.5 /weather</text>
+  <text x="746" y="243" class="comp-desc">• HTTPS 443 REST</text>
+  <text x="746" y="261" class="comp-desc">• Rate Limiting &amp; Polly</text>
+  <text x="746" y="288" class="comp-desc">Status: Telemetria Real</text>
+
+  <!-- Arrows -->
+  <path d="M 220 200 L 290 200" class="arrow" />
+  <path d="M 475 265 L 475 285" class="arrow-purple" />
+  <path d="M 660 200 L 730 200" class="arrow-orange" />
+</svg>

@@ -1,0 +1,109 @@
+﻿<div class="date-filter-container" role="group" aria-label="Filtro de período temporal">
+    <div class="date-presets-group">
+        <button type="button"
+                class="preset-btn @(SelectedPreset == DatePreset.Today ? "active" : "")" 
+                aria-pressed="@(SelectedPreset == DatePreset.Today ? "true" : "false")"
+                @onclick="() => SelectPreset(DatePreset.Today)">
+            Hoje
+        </button>
+        <button type="button"
+                class="preset-btn @(SelectedPreset == DatePreset.Last24Hours ? "active" : "")" 
+                aria-pressed="@(SelectedPreset == DatePreset.Last24Hours ? "true" : "false")"
+                @onclick="() => SelectPreset(DatePreset.Last24Hours)">
+            24h
+        </button>
+        <button type="button"
+                class="preset-btn @(SelectedPreset == DatePreset.Last7Days ? "active" : "")" 
+                aria-pressed="@(SelectedPreset == DatePreset.Last7Days ? "true" : "false")"
+                @onclick="() => SelectPreset(DatePreset.Last7Days)">
+            7 Dias
+        </button>
+        <button type="button"
+                class="preset-btn @(SelectedPreset == DatePreset.Last30Days ? "active" : "")" 
+                aria-pressed="@(SelectedPreset == DatePreset.Last30Days ? "true" : "false")"
+                @onclick="() => SelectPreset(DatePreset.Last30Days)">
+            30 Dias
+        </button>
+        <button type="button"
+                class="preset-btn @(SelectedPreset == DatePreset.Custom ? "active" : "")" 
+                aria-pressed="@(SelectedPreset == DatePreset.Custom ? "true" : "false")"
+                @onclick="() => SelectPreset(DatePreset.Custom)">
+            Personalizado
+        </button>
+    </div>
+
+    @if (SelectedPreset == DatePreset.Custom)
+    {
+        <div class="custom-date-inputs" aria-label="Seleção personalizada de datas">
+            <label class="sr-only" for="customStartDate">Data Inicial</label>
+            <input id="customStartDate" type="date" class="date-input" @bind="StartDate" />
+            <span class="date-separator" aria-hidden="true">até</span>
+            <label class="sr-only" for="customEndDate">Data Final</label>
+            <input id="customEndDate" type="date" class="date-input" @bind="EndDate" />
+            <button type="button" class="btn-apply-date" @onclick="ApplyCustomDate">Aplicar</button>
+        </div>
+    }
+</div>
+
+@code {
+    public enum DatePreset
+    {
+        Today,
+        Last24Hours,
+        Last7Days,
+        Last30Days,
+        Custom
+    }
+
+    [Parameter]
+    public DatePreset SelectedPreset { get; set; } = DatePreset.Last7Days;
+
+    [Parameter]
+    public EventCallback<(DateTime Start, DateTime End)> OnDateRangeChanged { get; set; }
+
+    private DateTime StartDate { get; set; } = DateTime.UtcNow.Date.AddDays(-6);
+    private DateTime EndDate { get; set; } = DateTime.UtcNow.Date;
+
+    private async Task SelectPreset(DatePreset preset)
+    {
+        SelectedPreset = preset;
+        var now = DateTime.UtcNow;
+
+        DateTime start;
+        DateTime end = now;
+
+        switch (preset)
+        {
+            case DatePreset.Today:
+                start = now.Date;
+                break;
+            case DatePreset.Last24Hours:
+                start = now.AddHours(-24);
+                break;
+            case DatePreset.Last7Days:
+                start = now.AddDays(-7);
+                break;
+            case DatePreset.Last30Days:
+                start = now.AddDays(-30);
+                break;
+            case DatePreset.Custom:
+                return;
+            default:
+                start = now.AddDays(-7);
+                break;
+        }
+
+        await OnDateRangeChanged.InvokeAsync((start, end));
+    }
+
+    private async Task ApplyCustomDate()
+    {
+        var start = StartDate.ToUniversalTime();
+        var end = EndDate.Date.AddDays(1).AddTicks(-1).ToUniversalTime();
+        if (start > end)
+        {
+            start = end.AddDays(-1);
+        }
+        await OnDateRangeChanged.InvokeAsync((start, end));
+    }
+}

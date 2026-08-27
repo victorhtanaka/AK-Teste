@@ -1,0 +1,121 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540">
+  <defs>
+    <style>
+      .bg { fill: #0f172a; }
+      .box-layer { fill: #1e293b; stroke: #334155; stroke-width: 1.5; rx: 10; }
+      .box-sub { fill: #0f172a; stroke: #475569; stroke-width: 1; rx: 6; }
+      .box-client { fill: #1e1b4b; stroke: #4338ca; stroke-width: 1.5; rx: 8; }
+      .box-api { fill: #064e3b; stroke: #059669; stroke-width: 1.5; rx: 8; }
+      .box-app { fill: #451a03; stroke: #d97706; stroke-width: 1.5; rx: 8; }
+      .box-domain { fill: #311042; stroke: #9333ea; stroke-width: 1.5; rx: 8; }
+      .box-infra { fill: #0c4a6e; stroke: #0284c7; stroke-width: 1.5; rx: 8; }
+      .box-ext { fill: #3f1820; stroke: #e11d48; stroke-width: 1.5; rx: 8; }
+      .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #f8fafc; font-size: 18px; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 400; fill: #94a3b8; font-size: 12px; }
+      .layer-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #38bdf8; font-size: 13px; letter-spacing: 0.5px; }
+      .comp-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 600; fill: #f1f5f9; font-size: 12px; }
+      .comp-desc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 400; fill: #cbd5e1; font-size: 10.5px; }
+      .arrow { stroke: #60a5fa; stroke-width: 1.8; fill: none; marker-end: url(#arrowhead); }
+      .arrow-dashed { stroke: #a78bfa; stroke-width: 1.8; stroke-dasharray: 4,4; fill: none; marker-end: url(#arrowhead-purple); }
+    </style>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#60a5fa" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#a78bfa" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="540" class="bg" />
+
+  <!-- Header -->
+  <text x="40" y="38" class="title">Diagrama de Arquitetura Lógica — Clean Architecture &amp; SOLID</text>
+  <text x="40" y="58" class="subtitle">Dashboard Climático das Capitais Brasileiras (.NET 8 C# / Blazor WebAssembly / SQL Server)</text>
+
+  <!-- 1. Presentation Layer (Blazor WASM) -->
+  <rect x="40" y="80" width="260" height="420" class="box-layer" />
+  <text x="56" y="105" class="layer-title">APRESENTAÇÃO (FRONTEND)</text>
+  <text x="56" y="122" class="subtitle">WeatherDashboard.Web (Blazor WASM)</text>
+
+  <rect x="56" y="140" width="228" height="75" class="box-client" />
+  <text x="70" y="165" class="comp-title">Home.razor &amp; Componentes</text>
+  <text x="70" y="182" class="comp-desc">• CitySelector &amp; DateRangeFilter</text>
+  <text x="70" y="197" class="comp-desc">• NationalOverview &amp; StatCards</text>
+
+  <rect x="56" y="230" width="228" height="75" class="box-client" />
+  <text x="70" y="255" class="comp-title">Gráficos Nativos em SVG</text>
+  <text x="70" y="272" class="comp-desc">• TemperatureChart.razor</text>
+  <text x="70" y="287" class="comp-desc">• HumidityChart.razor (Puro SVG)</text>
+
+  <rect x="56" y="320" width="228" height="65" class="box-client" />
+  <text x="70" y="345" class="comp-title">WeatherApiClient.cs</text>
+  <text x="70" y="362" class="comp-desc">• Consumo HTTP REST /api/v1/*</text>
+  <text x="70" y="377" class="comp-desc">• Tratamento de Erros e Timeouts</text>
+
+  <rect x="56" y="400" width="228" height="75" class="box-client" />
+  <text x="70" y="425" class="comp-title">Design Tokens &amp; Estilos</text>
+  <text x="70" y="442" class="comp-desc">• HTML5 Semântico &amp; CSS3 Puro</text>
+  <text x="70" y="457" class="comp-desc">• Acessibilidade WCAG AA &amp; a11y</text>
+
+  <!-- 2. API & Host Layer -->
+  <rect x="340" y="80" width="280" height="200" class="box-layer" />
+  <text x="356" y="105" class="layer-title">API &amp; HOST (BACKEND)</text>
+  <text x="356" y="122" class="subtitle">WeatherDashboard.Api (.NET 8)</text>
+
+  <rect x="356" y="140" width="248" height="60" class="box-api" />
+  <text x="370" y="163" class="comp-title">Controllers REST (/api/v1/*)</text>
+  <text x="370" y="180" class="comp-desc">CitiesController &amp; WeatherController</text>
+
+  <rect x="356" y="210" width="248" height="55" class="box-api" />
+  <text x="370" y="233" class="comp-title">WeatherCollectorWorker</text>
+  <text x="370" y="250" class="comp-desc">PeriodicTimer (15 min) BackgroundService</text>
+
+  <!-- 3. Application Layer -->
+  <rect x="340" y="300" width="280" height="200" class="box-layer" />
+  <text x="356" y="325" class="layer-title">APLICAÇÃO (CASOS DE USO)</text>
+  <text x="356" y="342" class="subtitle">WeatherDashboard.Application</text>
+
+  <rect x="356" y="360" width="248" height="60" class="box-app" />
+  <text x="370" y="383" class="comp-title">Serviços de Domínio &amp; Regras</text>
+  <text x="370" y="400" class="comp-desc">WeatherService, CityService, WeatherSyncService</text>
+
+  <rect x="356" y="430" width="248" height="55" class="box-app" />
+  <text x="370" y="453" class="comp-title">DTOs &amp; FluentValidation</text>
+  <text x="370" y="470" class="comp-desc">Validação estrita de limites de data e IDs</text>
+
+  <!-- 4. Domain Layer -->
+  <rect x="660" y="80" width="260" height="190" class="box-layer" />
+  <text x="676" y="105" class="layer-title">DOMÍNIO (CORE / PURO)</text>
+  <text x="676" y="122" class="subtitle">WeatherDashboard.Domain</text>
+
+  <rect x="676" y="140" width="228" height="55" class="box-domain" />
+  <text x="690" y="163" class="comp-title">Entidades de Negócio</text>
+  <text x="690" y="180" class="comp-desc">City &amp; WeatherReading</text>
+
+  <rect x="676" y="205" width="228" height="50" class="box-domain" />
+  <text x="690" y="228" class="comp-title">Interfaces de Contrato</text>
+  <text x="690" y="243" class="comp-desc">ICityRepository, IWeatherReadingRepo</text>
+
+  <!-- 5. Infrastructure Layer -->
+  <rect x="660" y="290" width="260" height="210" class="box-layer" />
+  <text x="676" y="315" class="layer-title">INFRAESTRUTURA</text>
+  <text x="676" y="332" class="subtitle">WeatherDashboard.Infrastructure</text>
+
+  <rect x="676" y="350" width="228" height="65" class="box-infra" />
+  <text x="690" y="373" class="comp-title">EF Core 8 / Repositórios</text>
+  <text x="690" y="390" class="comp-desc">• SQL Server / LocalDB / InMemory</text>
+  <text x="690" y="405" class="comp-desc">• Migrations &amp; Seed das 27 Capitais</text>
+
+  <rect x="676" y="425" width="228" height="60" class="box-infra" />
+  <text x="690" y="448" class="comp-title">OpenWeatherMapClient + Polly</text>
+  <text x="690" y="465" class="comp-desc">Retry Exponencial &amp; Diagnóstico 401</text>
+
+  <!-- Arrows -->
+  <path d="M 284 352 L 340 170" class="arrow" />
+  <path d="M 480 200 L 480 360" class="arrow" />
+  <path d="M 480 265 L 480 360" class="arrow" />
+  <path d="M 620 390 L 660 382" class="arrow" />
+  <path d="M 620 457 L 660 455" class="arrow" />
+  <path d="M 790 350 L 790 255" class="arrow-dashed" />
+</svg>

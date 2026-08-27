@@ -1,0 +1,146 @@
+﻿@using System.Globalization
+@using Microsoft.AspNetCore.Components
+@using WeatherDashboard.Application.DTOs
+
+<section class="chart-card" aria-label="Gráfico de Umidade e Vento">
+    <header class="chart-header">
+        <div class="chart-title-group">
+            <div class="chart-title-with-badge">
+                <span class="chart-header-icon cyan-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                    </svg>
+                </span>
+                <h3>Umidade e Velocidade do Vento</h3>
+            </div>
+            <p>Variação da umidade do ar (%) e rajadas de vento (m/s)</p>
+        </div>
+
+        <div class="chart-legend-container">
+            <div class="legend-item">
+                <span class="legend-dot humidity-dot" aria-hidden="true"></span>
+                <span>Umidade (%)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot wind-dot" aria-hidden="true"></span>
+                <span>Vento (m/s)</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="chart-body">
+        @if (HistoryPoints == null || HistoryPoints.Count == 0)
+        {
+            <div class="empty-chart-state" role="status">
+                <span class="empty-chart-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                    </svg>
+                </span>
+                <h4>Nenhum registro no período</h4>
+                <p>Selecione um intervalo de datas com medições registradas.</p>
+            </div>
+        }
+        else
+        {
+            var width = 800.0;
+            var height = 300.0;
+            var padL = 50.0;
+            var padR = 45.0;
+            var padT = 25.0;
+            var padB = 40.0;
+
+            var plotW = width - padL - padR;
+            var plotH = height - padT - padB;
+
+            var maxWind = Math.Max(10.0, HistoryPoints.Max(p => p.WindSpeedMs) * 1.3);
+
+            var n = HistoryPoints.Count;
+            var pointsHum = new List<(double X, double Y, WeatherHistoryPointDto Data)>();
+            var pointsWind = new List<(double X, double Y, WeatherHistoryPointDto Data)>();
+
+            for (int i = 0; i < n; i++)
+            {
+                var pt = HistoryPoints[i];
+                var x = n == 1 ? (padL + plotW / 2.0) : (padL + (i * (plotW / (n - 1))));
+                var yHum = padT + plotH - ((pt.Humidity / 100.0) * plotH);
+                var yWind = padT + plotH - ((pt.WindSpeedMs / maxWind) * plotH);
+
+                pointsHum.Add((x, yHum, pt));
+                pointsWind.Add((x, yWind, pt));
+            }
+
+            var humPath = string.Join(" ", pointsHum.Select((p, idx) => (idx == 0 ? $"M {p.X.ToString("F1", CultureInfo.InvariantCulture)},{p.Y.ToString("F1", CultureInfo.InvariantCulture)}" : $"L {p.X.ToString("F1", CultureInfo.InvariantCulture)},{p.Y.ToString("F1", CultureInfo.InvariantCulture)}")));
+            var windPath = string.Join(" ", pointsWind.Select((p, idx) => (idx == 0 ? $"M {p.X.ToString("F1", CultureInfo.InvariantCulture)},{p.Y.ToString("F1", CultureInfo.InvariantCulture)}" : $"L {p.X.ToString("F1", CultureInfo.InvariantCulture)},{p.Y.ToString("F1", CultureInfo.InvariantCulture)}")));
+
+            var bottomY = padT + plotH;
+            var firstX = pointsHum.First().X;
+            var lastX = pointsHum.Last().X;
+            var areaPath = $"{humPath} L {lastX.ToString("F1", CultureInfo.InvariantCulture)},{bottomY.ToString("F1", CultureInfo.InvariantCulture)} L {firstX.ToString("F1", CultureInfo.InvariantCulture)},{bottomY.ToString("F1", CultureInfo.InvariantCulture)} Z";
+
+            <svg viewBox="0 0 @width @height" class="native-svg-chart" preserveAspectRatio="xMidYMid meet" role="img">
+                <defs>
+                    <linearGradient id="humGradientArea" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.3" />
+                        <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.0" />
+                    </linearGradient>
+                </defs>
+
+                <!-- Linhas de Grade Horizontais (Umidade: 0%, 25%, 50%, 75%, 100%) -->
+                @for (int h = 0; h <= 100; h += 25)
+                {
+                    var y = padT + plotH - ((h / 100.0) * plotH);
+                    <line x1="@padL" y1="@y.ToString("F1", CultureInfo.InvariantCulture)" 
+                          x2="@((width - padR).ToString("F1", CultureInfo.InvariantCulture))" 
+                          y2="@y.ToString("F1", CultureInfo.InvariantCulture)" 
+                          stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+
+                    @((MarkupString)$"<text x=\"{(padL - 8).ToString("F1", CultureInfo.InvariantCulture)}\" y=\"{(y + 4).ToString("F1", CultureInfo.InvariantCulture)}\" fill=\"#94a3b8\" font-size=\"11\" text-anchor=\"end\" font-weight=\"500\">{h}%</text>")
+                }
+
+                <!-- Área e Linha de Umidade -->
+                <path d="@areaPath" fill="url(#humGradientArea)" />
+                <path d="@humPath" fill="none" stroke="#06b6d4" stroke-width="2.8" 
+                      stroke-linecap="round" stroke-linejoin="round" />
+
+                <!-- Linha de Vento (Verde) -->
+                <path d="@windPath" fill="none" stroke="#10b981" stroke-width="2.5" 
+                      stroke-linecap="round" stroke-linejoin="round" />
+
+                <!-- Pontos Interativos -->
+                @foreach (var p in pointsHum)
+                {
+                    <circle cx="@p.X.ToString("F1", CultureInfo.InvariantCulture)" 
+                            cy="@p.Y.ToString("F1", CultureInfo.InvariantCulture)" 
+                            r="4" fill="#ffffff" stroke="#06b6d4" stroke-width="2" class="chart-data-point">
+                        <title>@p.Data.TimestampUtc.ToLocalTime().ToString("dd/MM HH:mm") | Umidade: @p.Data.Humidity% | Vento: @p.Data.WindSpeedMs.ToString("F1") m/s</title>
+                    </circle>
+                }
+
+                @foreach (var p in pointsWind)
+                {
+                    <circle cx="@p.X.ToString("F1", CultureInfo.InvariantCulture)" 
+                            cy="@p.Y.ToString("F1", CultureInfo.InvariantCulture)" 
+                            r="3.5" fill="#ffffff" stroke="#10b981" stroke-width="2" class="chart-data-point">
+                        <title>@p.Data.TimestampUtc.ToLocalTime().ToString("dd/MM HH:mm") | Vento: @p.Data.WindSpeedMs.ToString("F1") m/s | Pressão: @p.Data.PressureHpa.ToString("F0") hPa</title>
+                    </circle>
+                }
+
+                <!-- Rótulos no Eixo X -->
+                @{
+                    var stepX = Math.Max(1, n / 5);
+                    for (int i = 0; i < n; i += stepX)
+                    {
+                        var pt = pointsHum[i];
+                        @((MarkupString)$"<text x=\"{pt.X.ToString("F1", CultureInfo.InvariantCulture)}\" y=\"{(height - 12).ToString("F1", CultureInfo.InvariantCulture)}\" fill=\"#64748b\" font-size=\"11\" text-anchor=\"middle\" font-weight=\"500\">{pt.Data.TimestampUtc.ToLocalTime():dd/MM HH:mm}</text>")
+                    }
+                }
+            </svg>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<WeatherHistoryPointDto> HistoryPoints { get; set; } = Array.Empty<WeatherHistoryPointDto>();
+}

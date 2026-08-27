@@ -1,0 +1,168 @@
+﻿@using System.Globalization
+@using Microsoft.AspNetCore.Components
+@using WeatherDashboard.Application.DTOs
+
+<section class="chart-card" aria-label="Gráfico de Histórico de Temperatura">
+    <header class="chart-header">
+        <div class="chart-title-group">
+            <div class="chart-title-with-badge">
+                <span class="chart-header-icon orange-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+                        <circle cx="11.5" cy="18.5" r="2" fill="currentColor" />
+                    </svg>
+                </span>
+                <h3>Histórico de Temperatura</h3>
+            </div>
+            <p>Evolução térmica (°C) e sensação no período selecionado</p>
+        </div>
+
+        <div class="chart-legend-container">
+            <div class="legend-item">
+                <span class="legend-dot temp-dot" aria-hidden="true"></span>
+                <span>Temperatura (°C)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot feels-dot" aria-hidden="true"></span>
+                <span>Sensação (°C)</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="chart-body">
+        @if (HistoryPoints == null || HistoryPoints.Count == 0)
+        {
+            <div class="empty-chart-state" role="status">
+                <span class="empty-chart-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>
+                </span>
+                <h4>Nenhum registro no período</h4>
+                <p>Selecione um intervalo de datas com medições registradas.</p>
+            </div>
+        }
+        else
+        {
+            var width = 800.0;
+            var height = 300.0;
+            var padL = 50.0;
+            var padR = 25.0;
+            var padT = 25.0;
+            var padB = 40.0;
+
+            var plotW = width - padL - padR;
+            var plotH = height - padT - padB;
+
+            var minVal = HistoryPoints.Min(p => Math.Min(p.TemperatureC, p.FeelsLikeC));
+            var maxVal = HistoryPoints.Max(p => Math.Max(p.TemperatureC, p.FeelsLikeC));
+
+            if (Math.Abs(maxVal - minVal) < 1.0)
+            {
+                minVal -= 2.0;
+                maxVal += 2.0;
+            }
+            else
+            {
+                var buffer = (maxVal - minVal) * 0.15;
+                minVal -= buffer;
+                maxVal += buffer;
+            }
+
+            minVal = Math.Floor(minVal);
+            maxVal = Math.Ceiling(maxVal);
+            var valRange = maxVal - minVal;
+            if (valRange <= 0) valRange = 10;
+
+            var n = HistoryPoints.Count;
+            var pointsTemp = new List<(double X, double Y, WeatherHistoryPointDto Data)>();
+            var pointsFeels = new List<(double X, double Y, WeatherHistoryPointDto Data)>();
+
+            for (int i = 0; i < n; i++)
+            {
+                var pt = HistoryPoints[i];
+                var x = n == 1 ? (padL + plotW / 2.0) : (padL + (i * (plotW / (n - 1))));
+                var yTemp = padT + plotH - ((pt.TemperatureC - minVal) / valRange * plotH);
+                var yFeels = padT + plotH - ((pt.FeelsLikeC - minVal) / valRange * plotH);
+
+                pointsTemp.Add((x, yTemp, pt));
+                pointsFeels.Add((x, yFeels, pt));
+            }
+
+            var tempPath = string.Join(" ", pointsTemp.Select((p, idx) => (idx == 0 ? $"M {p.X.ToString("F1", CultureInfo.InvariantCulture)},{p.Y.ToString("F1", CultureInfo.InvariantCulture)}" : $"L {p.X.ToString("F1", CultureInfo.InvariantCulture)},{p.Y.ToString("F1", CultureInfo.InvariantCulture)}")));
+            var feelsPath = string.Join(" ", pointsFeels.Select((p, idx) => (idx == 0 ? $"M {p.X.ToString("F1", CultureInfo.InvariantCulture)},{p.Y.ToString("F1", CultureInfo.InvariantCulture)}" : $"L {p.X.ToString("F1", CultureInfo.InvariantCulture)},{p.Y.ToString("F1", CultureInfo.InvariantCulture)}")));
+
+            var bottomY = padT + plotH;
+            var firstX = pointsTemp.First().X;
+            var lastX = pointsTemp.Last().X;
+            var areaPath = $"{tempPath} L {lastX.ToString("F1", CultureInfo.InvariantCulture)},{bottomY.ToString("F1", CultureInfo.InvariantCulture)} L {firstX.ToString("F1", CultureInfo.InvariantCulture)},{bottomY.ToString("F1", CultureInfo.InvariantCulture)} Z";
+
+            var gridSteps = 4;
+            var gridLines = Enumerable.Range(0, gridSteps + 1).Select(step =>
+            {
+                var ratio = (double)step / gridSteps;
+                var val = minVal + (ratio * valRange);
+                var y = padT + plotH - (ratio * plotH);
+                return (Y: y, Value: val);
+            }).ToList();
+
+            <svg viewBox="0 0 @width @height" class="native-svg-chart" preserveAspectRatio="xMidYMid meet" role="img">
+                <defs>
+                    <linearGradient id="tempGradientArea" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#f97316" stop-opacity="0.35" />
+                        <stop offset="100%" stop-color="#f97316" stop-opacity="0.0" />
+                    </linearGradient>
+                </defs>
+
+                <!-- Linhas de Grade Horizontais e Rótulos Y -->
+                @foreach (var g in gridLines)
+                {
+                    <line x1="@padL" y1="@g.Y.ToString("F1", CultureInfo.InvariantCulture)" 
+                          x2="@((width - padR).ToString("F1", CultureInfo.InvariantCulture))" 
+                          y2="@g.Y.ToString("F1", CultureInfo.InvariantCulture)" 
+                          stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+
+                    @((MarkupString)$"<text x=\"{(padL - 8).ToString("F1", CultureInfo.InvariantCulture)}\" y=\"{(g.Y + 4).ToString("F1", CultureInfo.InvariantCulture)}\" fill=\"#94a3b8\" font-size=\"11\" text-anchor=\"end\" font-weight=\"500\">{g.Value.ToString("F0")}°C</text>")
+                }
+
+                <!-- Área sob a linha de temperatura -->
+                <path d="@areaPath" fill="url(#tempGradientArea)" />
+
+                <!-- Linha de Sensação Térmica (Pontilhada Azul) -->
+                <path d="@feelsPath" fill="none" stroke="#3b82f6" stroke-width="2.5" 
+                      stroke-dasharray="5,5" stroke-linecap="round" stroke-linejoin="round" />
+
+                <!-- Linha de Temperatura Real (Laranja) -->
+                <path d="@tempPath" fill="none" stroke="#f97316" stroke-width="3" 
+                      stroke-linecap="round" stroke-linejoin="round" />
+
+                <!-- Pontos Interativos com Tooltip Nativo -->
+                @foreach (var p in pointsTemp)
+                {
+                    <circle cx="@p.X.ToString("F1", CultureInfo.InvariantCulture)" 
+                            cy="@p.Y.ToString("F1", CultureInfo.InvariantCulture)" 
+                            r="4.5" fill="#ffffff" stroke="#f97316" stroke-width="2.5" class="chart-data-point">
+                        <title>@p.Data.TimestampUtc.ToLocalTime().ToString("dd/MM HH:mm") | Temp: @p.Data.TemperatureC.ToString("F1")°C | Sensação: @p.Data.FeelsLikeC.ToString("F1")°C | @p.Data.WeatherDescription</title>
+                    </circle>
+                }
+
+                <!-- Rótulos no Eixo X -->
+                @{
+                    var stepX = Math.Max(1, n / 5);
+                    for (int i = 0; i < n; i += stepX)
+                    {
+                        var pt = pointsTemp[i];
+                        @((MarkupString)$"<text x=\"{pt.X.ToString("F1", CultureInfo.InvariantCulture)}\" y=\"{(height - 12).ToString("F1", CultureInfo.InvariantCulture)}\" fill=\"#64748b\" font-size=\"11\" text-anchor=\"middle\" font-weight=\"500\">{pt.Data.TimestampUtc.ToLocalTime():dd/MM HH:mm}</text>")
+                    }
+                }
+            </svg>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<WeatherHistoryPointDto> HistoryPoints { get; set; } = Array.Empty<WeatherHistoryPointDto>();
+}

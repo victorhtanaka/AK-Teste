@@ -1,0 +1,103 @@
+﻿@using WeatherDashboard.Application.DTOs
+
+<div class="city-select-group">
+    <label class="city-select-label" for="citySelect">
+        <span class="city-label-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+            </svg>
+        </span>
+        <span>Capital:</span>
+    </label>
+    <div class="city-select-wrapper">
+        <select id="citySelect" 
+                class="city-select-input" 
+                value="@SelectedCityId" 
+                @onchange="HandleCityChange"
+                disabled="@IsDisabled"
+                aria-label="Selecione uma capital brasileira">
+            @if (Cities == null || Cities.Count == 0)
+            {
+                <option value="0" disabled selected>Carregando capitais...</option>
+            }
+            else
+            {
+                @foreach (var region in GroupedCities)
+                {
+                    <optgroup label="@region.Key">
+                        @foreach (var city in region.Value)
+                        {
+                            <option value="@city.Id">@city.Name (@city.State)</option>
+                        }
+                    </optgroup>
+                }
+            }
+        </select>
+        <span class="city-select-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9l6 6 6-6" />
+            </svg>
+        </span>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<CityDto> Cities { get; set; } = Array.Empty<CityDto>();
+
+    [Parameter]
+    public int SelectedCityId { get; set; }
+
+    [Parameter]
+    public bool IsDisabled { get; set; }
+
+    [Parameter]
+    public EventCallback<CityDto> OnCitySelected { get; set; }
+
+    private Dictionary<string, List<CityDto>> GroupedCities => GetGroupedCities();
+
+    private Dictionary<string, List<CityDto>> GetGroupedCities()
+    {
+        var dict = new Dictionary<string, List<CityDto>>
+        {
+            ["Centro-Oeste"] = new(),
+            ["Nordeste"] = new(),
+            ["Norte"] = new(),
+            ["Sudeste"] = new(),
+            ["Sul"] = new()
+        };
+
+        foreach (var c in Cities.OrderBy(c => c.Name))
+        {
+            var region = GetRegion(c.State);
+            if (!dict.ContainsKey(region)) dict[region] = new();
+            dict[region].Add(c);
+        }
+
+        return dict;
+    }
+
+    private static string GetRegion(string uf) => uf.ToUpperInvariant() switch
+    {
+        "AC" or "AP" or "AM" or "PA" or "RO" or "RR" or "TO" => "Norte",
+        "AL" or "BA" or "CE" or "MA" or "PB" or "PE" or "PI" or "RN" or "SE" => "Nordeste",
+        "DF" or "GO" or "MT" or "MS" => "Centro-Oeste",
+        "ES" or "MG" or "RJ" or "SP" => "Sudeste",
+        "PR" or "RS" or "SC" => "Sul",
+        _ => "Outras"
+    };
+
+    private async Task HandleCityChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id) && id > 0)
+        {
+            SelectedCityId = id;
+            var city = Cities.FirstOrDefault(c => c.Id == id);
+            if (city != null)
+            {
+                await OnCitySelected.InvokeAsync(city);
+            }
+        }
+    }
+}

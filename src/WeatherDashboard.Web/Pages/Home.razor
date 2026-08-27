@@ -1,0 +1,411 @@
+@page "/"
+@inject WeatherApiClient WeatherClient
+
+<div class="dashboard-container">
+
+    <!-- Barra de Conexão e Diagnóstico da API em Tempo Real -->
+    @if (Diagnostics != null)
+    {
+        var isSimulated = Diagnostics.ApiKeyStatus != null && Diagnostics.ApiKeyStatus.Contains("Simulado");
+        var statusClass = Diagnostics.IsConnected 
+            ? "status-connected" 
+            : (isSimulated ? "status-simulated" : (Diagnostics.LastStatusCode == 401 ? "status-pending" : "status-error"));
+        var statusTitle = Diagnostics.IsConnected 
+            ? "OpenWeatherMap API: Conectada e Operacional" 
+            : (isSimulated 
+                ? "Modo Simulado Integrado Ativo (Sem chave externa configurada)" 
+                : (Diagnostics.LastStatusCode == 401 ? "OpenWeatherMap API: Chave em Processo de Ativação (HTTP 401)" : "OpenWeatherMap API: Falha de Comunicação"));
+
+        <div class="api-status-bar @statusClass" role="status">
+            <div class="api-status-left">
+                <span class="status-indicator-dot" aria-hidden="true"></span>
+                <span class="api-status-title">@statusTitle</span>
+                @if (Diagnostics.LastAttemptUtc.HasValue)
+                {
+                    <span class="api-status-timestamp">
+                        (Última verificação: @Diagnostics.LastAttemptUtc.Value.ToLocalTime().ToString("HH:mm:ss"))
+                    </span>
+                }
+            </div>
+
+            <div class="api-status-actions">
+                <button type="button" class="btn-api-diag" @onclick="() => ShowDiagModal = true">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 4px;">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    Ver Diagnóstico Detalhado
+                </button>
+            </div>
+        </div>
+    }
+
+    <!-- Alerta quando a chave estiver em fase de propagação 401 -->
+    @if (Diagnostics != null && !Diagnostics.IsConnected && Diagnostics.LastStatusCode == 401 && Diagnostics.ApiKeyStatus != null && Diagnostics.ApiKeyStatus.Contains("Configurada"))
+    {
+        <aside class="api-notice-box" role="alert">
+            <div class="notice-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                </svg>
+            </div>
+            <div class="notice-content">
+                <strong>Chave da OpenWeatherMap aguardando propagação nos servidores externos:</strong>
+                <p>A chave configurada foi recebida, mas a OpenWeatherMap ainda está respondendo <code>401 Unauthorized</code> (comportamento padrão de chaves novas durante os primeiros minutos ou até confirmação do e-mail de cadastro). Nenhuma leitura fictícia será inventada.</p>
+                <div class="notice-actions">
+                    <button type="button" class="btn-apply-date" @onclick="TriggerManualSync" disabled="@IsSyncing">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="@(IsSyncing ? "spinning" : "")" style="vertical-align: -2px; margin-right: 4px;">
+                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                        </svg>
+                        @(IsSyncing ? "Verificando..." : "Testar Chave Novamente")
+                    </button>
+                </div>
+            </div>
+        </aside>
+    }
+
+    <!-- Seção Superior de Controles e Filtros -->
+    <section class="control-bar" aria-label="Controles do painel">
+        <CitySelector Cities="@Cities" 
+                      SelectedCityId="@SelectedCityId" 
+                      IsDisabled="@IsLoading" 
+                      OnCitySelected="HandleCitySelected" />
+
+        <div class="controls-right-group">
+            <DateRangeFilter OnDateRangeChanged="HandleDateRangeChanged" />
+            
+            <div class="actions-toolbar">
+                <!-- Botão de Exportação CSV -->
+                <a href="@ExportCsvUrl" 
+                   download
+                   class="btn-dashboard-action btn-export"
+                   title="Exportar histórico da capital atual para arquivo CSV"
+                   aria-label="Exportar histórico da capital atual para CSV">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>Exportar CSV</span>
+                </a>
+
+                <!-- Botão de Sincronização -->
+                <button type="button" 
+                        class="btn-dashboard-action btn-sync" 
+                        @onclick="TriggerManualSync" 
+                        disabled="@IsSyncing"
+                        title="Disparar coleta imediata de todas as 27 capitais"
+                        aria-label="Atualizar dados climáticos agora">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="@(IsSyncing ? "spinning" : "")" aria-hidden="true">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                    </svg>
+                    <span>@(IsSyncing ? "Sincronizando..." : "Sincronizar API")</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Notificações e Feedback de Ação -->
+    @if (!string.IsNullOrEmpty(NotificationMessage))
+    {
+        <aside class="notification-banner @(IsNotificationError ? "error" : "success")" role="status" aria-live="polite">
+            <span class="notification-text">@NotificationMessage</span>
+            <button type="button" class="notification-close" @onclick="() => NotificationMessage = null" aria-label="Fechar notificação">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </aside>
+    }
+
+    <!-- Hero Card do Clima Atual da Capital Selecionada -->
+    <CurrentWeatherCard City="@CurrentCity" 
+                        CurrentWeather="@CurrentWeather" 
+                        TodayStats="@TodayStats" />
+
+    <!-- Panorama Nacional Comparativo das 27 Capitais -->
+    <NationalOverview Summary="@NationalSummary" />
+
+    <!-- Seção de Indicadores e Estatísticas do Dia Atual -->
+    <section class="stats-section" aria-label="Estatísticas consolidadas do dia">
+        <div class="section-header-compact">
+            <h2 class="section-heading-title">Estatísticas Consolidadas do Dia</h2>
+            <span class="section-heading-sub">Indicadores calculados com base nas leituras de hoje</span>
+        </div>
+        <div class="stats-grid">
+            <StatCard Title="Temperatura Máxima" 
+                      Value="@(TodayStats != null && TodayStats.TotalReadings > 0 ? $"{TodayStats.TempMaxC:F1}" : "--")" 
+                      Unit="°C" 
+                      IconType="temp-max" 
+                      ColorClass="orange" 
+                      Subtitle="Pico registrado hoje"
+                      IsLoading="@IsLoading" />
+
+            <StatCard Title="Temperatura Mínima" 
+                      Value="@(TodayStats != null && TodayStats.TotalReadings > 0 ? $"{TodayStats.TempMinC:F1}" : "--")" 
+                      Unit="°C" 
+                      IconType="temp-min" 
+                      ColorClass="blue" 
+                      Subtitle="Menor temperatura hoje"
+                      IsLoading="@IsLoading" />
+
+            <StatCard Title="Média Térmica" 
+                      Value="@(TodayStats != null && TodayStats.TotalReadings > 0 ? $"{TodayStats.TempAvgC:F1}" : "--")" 
+                      Unit="°C" 
+                      IconType="temp-avg" 
+                      ColorClass="purple" 
+                      Subtitle="Média ponderada do dia"
+                      IsLoading="@IsLoading" />
+
+            <StatCard Title="Sensação Média" 
+                      Value="@(TodayStats != null && TodayStats.TotalReadings > 0 ? $"{TodayStats.FeelsLikeAvgC:F1}" : "--")" 
+                      Unit="°C" 
+                      IconType="feels" 
+                      ColorClass="orange" 
+                      Subtitle="Sensação térmica média"
+                      IsLoading="@IsLoading" />
+
+            <StatCard Title="Umidade Média" 
+                      Value="@(TodayStats != null && TodayStats.TotalReadings > 0 ? $"{TodayStats.HumidityAvg:F0}" : "--")" 
+                      Unit="%" 
+                      IconType="humidity" 
+                      ColorClass="cyan" 
+                      Subtitle="Umidade relativa do ar"
+                      IsLoading="@IsLoading" />
+
+            <StatCard Title="Vento Médio" 
+                      Value="@(TodayStats != null && TodayStats.TotalReadings > 0 ? $"{TodayStats.WindSpeedAvgMs:F1}" : "--")" 
+                      Unit="m/s" 
+                      IconType="wind" 
+                      ColorClass="green" 
+                      Subtitle="Velocidade média do vento"
+                      IsLoading="@IsLoading" />
+
+            <StatCard Title="Pressão Atmosférica" 
+                      Value="@(TodayStats != null && TodayStats.TotalReadings > 0 ? $"{TodayStats.PressureAvgHpa:F0}" : "--")" 
+                      Unit="hPa" 
+                      IconType="pressure" 
+                      ColorClass="blue" 
+                      Subtitle="Pressão ao nível do mar"
+                      IsLoading="@IsLoading" />
+
+            <StatCard Title="Leituras Persistidas" 
+                      Value="@(TodayStats != null ? $"{TodayStats.TotalReadings}" : "0")" 
+                      Unit="registros" 
+                      IconType="records" 
+                      ColorClass="green" 
+                      Subtitle="Amostras no banco hoje"
+                      IsLoading="@IsLoading" />
+        </div>
+    </section>
+
+    <!-- Seção de Gráficos Históricos Nativos em SVG -->
+    <section class="charts-section" aria-label="Gráficos de evolução climática">
+        <div class="section-header-compact">
+            <h2 class="section-heading-title">Histórico e Tendências Meteorológicas</h2>
+            <span class="section-heading-sub">Curvas temporais em vetores SVG nativos de alta fidelidade</span>
+        </div>
+        <div class="charts-grid">
+            <TemperatureChart HistoryPoints="@HistoryPoints" />
+            <HumidityChart HistoryPoints="@HistoryPoints" />
+        </div>
+    </section>
+
+    <!-- Modal de Diagnóstico Detalhado da API -->
+    @if (ShowDiagModal && Diagnostics != null)
+    {
+        <div class="modal-overlay" role="dialog" aria-modal="true" @onclick="() => ShowDiagModal = false">
+            <div class="modal-content-card" style="max-width: 860px;" @onclick:stopPropagation="true">
+                <header class="modal-header">
+                    <h2>Painel de Diagnóstico & Transparência da API</h2>
+                    <button type="button" class="btn-close-modal" @onclick="() => ShowDiagModal = false" aria-label="Fechar modal">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </header>
+
+                <div class="modal-body">
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.88rem;">
+                        <div>
+                            <span style="color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Provedor:</span>
+                            <div style="font-weight: 700; color: #0f172a;">@Diagnostics.ProviderName</div>
+                        </div>
+                        <div>
+                            <span style="color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Status HTTP Geral:</span>
+                            <div style="font-weight: 700; color: @(Diagnostics.IsConnected ? "#10b981" : "#e11d48");">
+                                @(Diagnostics.LastStatusCode.HasValue ? $"HTTP {Diagnostics.LastStatusCode}" : "Aguardando 1º ciclo")
+                            </div>
+                        </div>
+                        <div>
+                            <span style="color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Chave de API:</span>
+                            <div style="font-weight: 700; color: #0f172a;">@Diagnostics.ApiKeyStatus</div>
+                        </div>
+                    </div>
+
+                    @if (Diagnostics.CityStatuses.Count > 0)
+                    {
+                        <h3 style="font-size: 0.95rem; font-weight: 700; margin-top: 12px;">Detalhamento das 27 Capitais:</h3>
+                        <div style="max-height: 280px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                                <thead>
+                                    <tr style="background: #f1f5f9; text-align: left;">
+                                        <th style="padding: 8px 12px;">Capital</th>
+                                        <th style="padding: 8px 12px;">Status</th>
+                                        <th style="padding: 8px 12px;">Tempo Resposta</th>
+                                        <th style="padding: 8px 12px;">Mensagem</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var cityStat in Diagnostics.CityStatuses)
+                                    {
+                                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                                            <td style="padding: 8px 12px; font-weight: 600;">@cityStat.CityName (@cityStat.State)</td>
+                                            <td style="padding: 8px 12px;">
+                                                <span style="padding: 2px 8px; border-radius: 9999px; font-weight: 700; font-size: 0.75rem; background: @(cityStat.Success ? "#dcfce7; color: #15803d;" : "#fee2e2; color: #b91c1c;");">
+                                                    @(cityStat.StatusCode.HasValue ? $"HTTP {cityStat.StatusCode}" : "-")
+                                                </span>
+                                            </td>
+                                            <td style="padding: 8px 12px;">@cityStat.ResponseTimeMs ms</td>
+                                            <td style="padding: 8px 12px; color: #64748b;">@cityStat.Message</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
+                <footer class="modal-footer">
+                    <button type="button" class="btn-modal-close" @onclick="() => ShowDiagModal = false">Fechar</button>
+                </footer>
+            </div>
+        </div>
+    }
+
+</div>
+
+@code {
+    private IReadOnlyList<CityDto> Cities = Array.Empty<CityDto>();
+    private CityDto? CurrentCity;
+    private int SelectedCityId = 7; // Padrão: Brasília (DF)
+    private WeatherReadingDto? CurrentWeather;
+    private TodayStatsDto? TodayStats;
+    private NationalSummaryDto? NationalSummary;
+    private IReadOnlyList<WeatherHistoryPointDto> HistoryPoints = Array.Empty<WeatherHistoryPointDto>();
+    private ApiDiagnosticDto? Diagnostics;
+
+    private DateTime CurrentStartDate = DateTime.UtcNow.AddDays(-7);
+    private DateTime CurrentEndDate = DateTime.UtcNow;
+
+    private bool IsLoading = true;
+    private bool IsSyncing = false;
+    private bool ShowDiagModal = false;
+    private string? NotificationMessage;
+    private bool IsNotificationError = false;
+
+    private string ExportCsvUrl => WeatherClient.GetExportCsvUrl(SelectedCityId, CurrentStartDate, CurrentEndDate);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCitiesAsync();
+        await RefreshDashboardDataAsync();
+    }
+
+    private async Task LoadCitiesAsync()
+    {
+        Cities = await WeatherClient.GetAllCitiesAsync();
+        if (Cities.Count > 0)
+        {
+            var defaultCity = Cities.FirstOrDefault(c => c.Name.Contains("Brasília", StringComparison.OrdinalIgnoreCase)) 
+                              ?? Cities.First();
+            SelectedCityId = defaultCity.Id;
+            CurrentCity = defaultCity;
+        }
+    }
+
+    private async Task HandleCitySelected(CityDto city)
+    {
+        SelectedCityId = city.Id;
+        CurrentCity = city;
+        await RefreshDashboardDataAsync();
+    }
+
+    private async Task HandleDateRangeChanged((DateTime Start, DateTime End) range)
+    {
+        CurrentStartDate = range.Start;
+        CurrentEndDate = range.End;
+        await LoadHistoryAsync();
+    }
+
+    private async Task RefreshDashboardDataAsync()
+    {
+        if (SelectedCityId <= 0) return;
+
+        IsLoading = true;
+        try
+        {
+            var currentTask = WeatherClient.GetCurrentWeatherAsync(SelectedCityId);
+            var statsTask = WeatherClient.GetTodayStatsAsync(SelectedCityId);
+            var historyTask = WeatherClient.GetWeatherHistoryAsync(SelectedCityId, CurrentStartDate, CurrentEndDate);
+            var diagTask = WeatherClient.GetDiagnosticsAsync();
+            var nationalTask = WeatherClient.GetNationalSummaryAsync();
+
+            await Task.WhenAll(currentTask, statsTask, historyTask, diagTask, nationalTask);
+
+            CurrentWeather = await currentTask;
+            TodayStats = await statsTask;
+            Diagnostics = await diagTask;
+            NationalSummary = await nationalTask;
+            var history = await historyTask;
+            HistoryPoints = history?.Points ?? Array.Empty<WeatherHistoryPointDto>();
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        if (SelectedCityId <= 0) return;
+        var history = await WeatherClient.GetWeatherHistoryAsync(SelectedCityId, CurrentStartDate, CurrentEndDate);
+        HistoryPoints = history?.Points ?? Array.Empty<WeatherHistoryPointDto>();
+    }
+
+    private async Task TriggerManualSync()
+    {
+        IsSyncing = true;
+        IsNotificationError = false;
+        NotificationMessage = "Sincronizando as 27 capitais com a OpenWeatherMap...";
+        try
+        {
+            var result = await WeatherClient.TriggerSyncAsync();
+            Diagnostics = await WeatherClient.GetDiagnosticsAsync();
+
+            if (result != null && result.SuccessCount > 0)
+            {
+                NotificationMessage = $"Sucesso! {result.SuccessCount}/{result.TotalCities} capitais atualizadas com dados oficiais da OpenWeatherMap.";
+                await RefreshDashboardDataAsync();
+            }
+            else if (result != null && result.FailureCount > 0)
+            {
+                IsNotificationError = true;
+                NotificationMessage = "A API externa retornou erro para as cidades. Verifique o status da chave no painel de diagnóstico.";
+                await RefreshDashboardDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            IsNotificationError = true;
+            NotificationMessage = $"Erro: {ex.Message}";
+        }
+        finally
+        {
+            IsSyncing = false;
+        }
+    }
+}

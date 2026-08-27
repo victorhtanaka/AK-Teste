@@ -1,0 +1,113 @@
+﻿@using WeatherDashboard.Application.DTOs
+
+<section class="national-overview-section" aria-label="Panorama Meteorológico Nacional das 27 Capitais">
+    <header class="national-overview-header">
+        <div class="national-header-title-box">
+            <div class="national-header-icon-box" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+            </div>
+            <div>
+                <h3 class="national-main-title">Panorama Nacional em Tempo Real</h3>
+                <p class="national-sub-title">Monitoramento consolidado das 27 capitais brasileiras</p>
+            </div>
+        </div>
+        <div class="national-header-pill">
+            <span class="live-pulse-dot" aria-hidden="true"></span>
+            <span>27 Capitais Conectadas</span>
+        </div>
+    </header>
+
+    <div class="national-overview-grid">
+        <!-- 1. Capital Mais Quente -->
+        <div class="national-stat-pill stat-warm">
+            <div class="stat-pill-top">
+                <div class="stat-pill-tag">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+                        <path d="M18 5l3 3m0-3l-3 3" />
+                    </svg>
+                    <span>Mais Quente</span>
+                </div>
+                <span class="stat-pill-location">@(Summary?.WarmestCity != null ? $"{Summary.WarmestCity.CityName} ({Summary.WarmestCity.State})" : "--")</span>
+            </div>
+            <div class="stat-pill-bottom">
+                <div class="stat-pill-value-group">
+                    <span class="stat-pill-value">@(Summary?.WarmestCity != null ? $"{Summary.WarmestCity.TemperatureC:F1}" : "--")</span>
+                    <span class="stat-pill-unit">°C</span>
+                </div>
+                <span class="stat-pill-desc">@(Summary?.WarmestCity?.WeatherDescription ?? "Sem dados")</span>
+            </div>
+        </div>
+
+        <!-- 2. Capital Mais Fria -->
+        <div class="national-stat-pill stat-cold">
+            <div class="stat-pill-top">
+                <div class="stat-pill-tag">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+                        <path d="M18 11l3 3m0-3l-3 3" />
+                    </svg>
+                    <span>Mais Fria</span>
+                </div>
+                <span class="stat-pill-location">@(Summary?.ColdestCity != null ? $"{Summary.ColdestCity.CityName} ({Summary.ColdestCity.State})" : "--")</span>
+            </div>
+            <div class="stat-pill-bottom">
+                <div class="stat-pill-value-group">
+                    <span class="stat-pill-value">@(Summary?.ColdestCity != null ? $"{Summary.ColdestCity.TemperatureC:F1}" : "--")</span>
+                    <span class="stat-pill-unit">°C</span>
+                </div>
+                <span class="stat-pill-desc">@(Summary?.ColdestCity?.WeatherDescription ?? "Sem dados")</span>
+            </div>
+        </div>
+
+        <!-- 3. Média Térmica Nacional -->
+        <div class="national-stat-pill stat-avg">
+            <div class="stat-pill-top">
+                <div class="stat-pill-tag">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10" />
+                        <circle cx="12" cy="12" r="4" fill="currentColor" />
+                    </svg>
+                    <span>Média Brasil</span>
+                </div>
+                <span class="stat-pill-location">Média Ponderada</span>
+            </div>
+            <div class="stat-pill-bottom">
+                <div class="stat-pill-value-group">
+                    <span class="stat-pill-value">@(Summary != null && Summary.TotalReadingsToday > 0 ? $"{Summary.NationalAvgTempC:F1}" : "--")</span>
+                    <span class="stat-pill-unit">°C</span>
+                </div>
+                <span class="stat-pill-desc">Território Nacional</span>
+            </div>
+        </div>
+
+        <!-- 4. Umidade Média Nacional -->
+        <div class="national-stat-pill stat-humidity">
+            <div class="stat-pill-top">
+                <div class="stat-pill-tag">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                    </svg>
+                    <span>Umidade Média</span>
+                </div>
+                <span class="stat-pill-location">Ar Atmosférico</span>
+            </div>
+            <div class="stat-pill-bottom">
+                <div class="stat-pill-value-group">
+                    <span class="stat-pill-value">@(Summary != null && Summary.TotalReadingsToday > 0 ? $"{Summary.NationalAvgHumidity:F0}" : "--")</span>
+                    <span class="stat-pill-unit">%</span>
+                </div>
+                <span class="stat-pill-desc">Média Relativa</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public NationalSummaryDto? Summary { get; set; }
+}

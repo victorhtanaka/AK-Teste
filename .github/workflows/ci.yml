@@ -1,0 +1,33 @@
+﻿name: CI Pipeline - Weather Dashboard
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master", "develop" ]
+
+jobs:
+  build-and-test:
+    name: Build, Test & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Código Fonte
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8 SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restaurar Dependências
+      run: dotnet restore WeatherDashboard.sln
+
+    - name: Compilar Solução
+      run: dotnet build WeatherDashboard.sln -c Release --no-restore
+
+    - name: Executar Testes Automatizados
+      run: dotnet test WeatherDashboard.sln -c Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+
+    - name: Publicar Aplicação (Artefatos de Release)
+      run: dotnet publish src/WeatherDashboard.Api/WeatherDashboard.Api.csproj -c Release -o ./publish

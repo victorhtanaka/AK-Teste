@@ -1,0 +1,76 @@
+﻿@using WeatherDashboard.Application.DTOs
+
+<section class="hero-weather-card" aria-label="Condições climáticas atuais em @(City?.Name ?? "Capital")">
+    <div class="hero-city-info">
+        <h2>@(City?.Name ?? "Carregando...") <span class="hero-city-state">(@(City?.State ?? "--"))</span></h2>
+        <div class="hero-city-meta">
+            <span class="hero-condition-badge" role="status">
+                <span class="condition-dot" aria-hidden="true"></span>
+                @(CurrentWeather?.WeatherDescription ?? "Monitorando...")
+            </span>
+            @if (CurrentWeather != null)
+            {
+                <span class="hero-timestamp">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 4px;">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    Atualizado: @CurrentWeather.CollectedAtUtc.ToLocalTime().ToString("HH:mm:ss")
+                </span>
+            }
+        </div>
+    </div>
+
+    <div class="hero-temp-block">
+        @if (CurrentWeather != null)
+        {
+            var iconUrl = $"https://openweathermap.org/img/wn/{CurrentWeather.WeatherIcon}@2x.png";
+            <img class="hero-weather-icon" 
+                 src="@iconUrl" 
+                 alt="@CurrentWeather.WeatherDescription"
+                 loading="lazy" />
+            <div class="hero-temp-group">
+                <span class="hero-temp-value">@CurrentWeather.TemperatureC.ToString("F1")</span>
+                <span class="hero-temp-unit">°C</span>
+            </div>
+        }
+        else
+        {
+            <div class="skeleton-shimmer skeleton-hero-temp"></div>
+        }
+    </div>
+
+    <div class="hero-metrics-list" aria-label="Métricas detalhadas do dia">
+        <div class="hero-metric-item">
+            <span class="label">Sensação</span>
+            <span class="value">@(CurrentWeather != null ? $"{CurrentWeather.FeelsLikeC:F1}°C" : "--")</span>
+        </div>
+        <div class="hero-metric-item">
+            <span class="label">Mín / Máx Hoje</span>
+            <span class="value">@(TodayStats != null && TodayStats.TotalReadings > 0 ? $"{TodayStats.TempMinC:F1}° / {TodayStats.TempMaxC:F1}°" : "--")</span>
+        </div>
+        <div class="hero-metric-item">
+            <span class="label">Umidade</span>
+            <span class="value">@(CurrentWeather != null ? $"{CurrentWeather.Humidity}%" : "--")</span>
+        </div>
+        <div class="hero-metric-item">
+            <span class="label">Vento</span>
+            <span class="value">@(CurrentWeather != null ? $"{CurrentWeather.WindSpeedMs:F1} m/s" : "--")</span>
+        </div>
+        <div class="hero-metric-item">
+            <span class="label">Pressão</span>
+            <span class="value">@(CurrentWeather != null ? $"{CurrentWeather.PressureHpa:F0} hPa" : "--")</span>
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public CityDto? City { get; set; }
+
+    [Parameter]
+    public WeatherReadingDto? CurrentWeather { get; set; }
+
+    [Parameter]
+    public TodayStatsDto? TodayStats { get; set; }
+}
